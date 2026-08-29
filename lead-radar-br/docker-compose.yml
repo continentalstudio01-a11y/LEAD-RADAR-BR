@@ -1,0 +1,39 @@
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: lead-radar-searxng
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+
+  api:
+    build: ./apps/api
+    container_name: lead-radar-api
+    restart: unless-stopped
+    depends_on:
+      - searxng
+    environment:
+      - DB_PATH=/data/leads.db
+      - SEARXNG_URL=http://searxng:8080
+      - ENABLE_SEARXNG=true
+      - ENABLE_PAGESPEED=true
+      - MAX_DISCOVERY_RESULTS=250
+      - MAX_DEEP_AUDITS=30
+      - USER_AGENT=LeadRadarBR/0.1-local-research
+    volumes:
+      - ./data:/data
+    ports:
+      - "8000:8000"
+
+  web:
+    build: ./apps/web
+    container_name: lead-radar-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    ports:
+      - "5173:5173"
